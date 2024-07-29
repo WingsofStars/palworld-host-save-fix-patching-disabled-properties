@@ -6,8 +6,13 @@ import zlib
 
 from palworld_save_tools.gvas import GvasFile
 from palworld_save_tools.palsav import compress_gvas_to_sav, decompress_sav_to_gvas
-from palworld_save_tools.paltypes import PALWORLD_CUSTOM_PROPERTIES, PALWORLD_TYPE_HINTS
+from palworld_save_tools.paltypes import PALWORLD_CUSTOM_PROPERTIES, PALWORLD_TYPE_HINTS, DISABLED_PROPERTIES
 
+#Constant needed to help define custom properties and only apply properties that won't cause the fix to fail.
+DISABLED_PROPERTIES = {
+    ".worldSaveData.BaseCampSaveData.Value.ModuleMap",
+    ".worldSaveData.MapObjectSaveData",
+}
 def main():
     if len(sys.argv) < 5:
         print('fix_host_save.py <save_path> <new_guid> <old_guid> <guild_fix>')
@@ -53,6 +58,8 @@ def main():
     level_sav_path = save_path + '/Level.sav'
     old_sav_path = save_path + '/Players/'+ old_guid + '.sav'
     new_sav_path = save_path + '/Players/' + new_guid + '.sav'
+
+    #This might be needed for manual conversions
     level_json_path = level_sav_path + '.json'
     old_json_path = old_sav_path + '.json'
     
@@ -126,9 +133,13 @@ def sav_to_json(filepath):
     print(f'Converting {filepath} to JSON...', end='', flush=True)
     with open(filepath, 'rb') as f:
         data = f.read()
-        raw_gvas, _ = decompress_sav_to_gvas(data)
+        raw_gvas, _ = decompress_sav_to_gvas(data)     
+    # gvas_file = GvasFile.read(
+    #     raw_gvas, PALWORLD_TYPE_HINTS, PALWORLD_CUSTOM_PROPERTIES, allow_nan=True
+    # )
+    custom_properties = {prop: PALWORLD_CUSTOM_PROPERTIES[prop] for prop in set(PALWORLD_CUSTOM_PROPERTIES) - DISABLED_PROPERTIES}
     gvas_file = GvasFile.read(
-        raw_gvas, PALWORLD_TYPE_HINTS, PALWORLD_CUSTOM_PROPERTIES, allow_nan=True
+        raw_gvas, PALWORLD_TYPE_HINTS, custom_properties, allow_nan=True
     )
     json_data = gvas_file.dump()
     print('Done!', flush=True)
